@@ -1,0 +1,180 @@
+/* =========================================================================
+   DESIGN TOKENS
+   Identitas: "Data mengalir seperti sungai di Riau" — sungai Siak, Rokan,
+   Kampar adalah nadi provinsi ini; garis alir tipis dipakai sebagai
+   signature berulang (logo, divider header, latar login) untuk
+   menyimbolkan data yang terus mengalir dan diolah menjadi keputusan.
+   ========================================================================= */
+
+:root {
+  /* Warna */
+  --color-bg: #F6F5F0;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F0EEE6;
+  --color-ink: #14202B;
+  --color-ink-soft: #3A4650;
+  --color-muted: #6B7684;
+  --color-border: #E4E1D6;
+  --color-primary: #0B3D5C;
+  --color-primary-light: #175C82;
+  --color-primary-dark: #082A40;
+  --color-accent: #C99A2E;
+  --color-accent-soft: #F1E3C0;
+  --color-success: #2F7D5C;
+  --color-success-bg: #E7F3EC;
+  --color-danger: #B3492F;
+  --color-danger-bg: #FBEAE5;
+  --color-info: #175C82;
+  --color-info-bg: #E7F0F5;
+
+  /* Tipografi */
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Layout */
+  --sidebar-w: 264px;
+  --topbar-h: 68px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 2px rgba(20, 32, 43, 0.06);
+  --shadow-md: 0 8px 24px rgba(11, 61, 92, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app { min-height: 100vh; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--color-ink);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+a { color: inherit; text-decoration: none; }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+/* Fokus keyboard tetap terlihat -- aksesibilitas */
+:focus-visible {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #D8D4C6; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Utilitas kartu umum yang dipakai di seluruh halaman */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.page-head h1 {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.page-head .eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.page-head p {
+  color: var(--color-muted);
+  max-width: 60ch;
+  margin: 6px 0 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--color-primary-light); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+}
+.btn-ghost:hover { border-color: var(--color-primary-light); background: var(--color-surface-alt); }
+
+.btn-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+.btn-danger:hover { background: #f5d9d0; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.badge-success { background: var(--color-success-bg); color: var(--color-success); }
+.badge-info { background: var(--color-info-bg); color: var(--color-info); }
+.badge-danger { background: var(--color-danger-bg); color: var(--color-danger); }
+
+.data-mono { font-family: var(--font-mono); }
+
+/* Transisi antar halaman -- sederhana, tidak ramai */
+.route-fade-enter-active, .route-fade-leave-active { transition: opacity 0.16s ease; }
+.route-fade-enter-from, .route-fade-leave-to { opacity: 0; }
+
+@media (max-width: 900px) {
+  :root { --sidebar-w: 0px; }
+}
