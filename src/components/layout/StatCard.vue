@@ -27,18 +27,21 @@ defineProps({
 .stat-card.accent { border-top: 3px solid var(--color-accent); }
 
 .label {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: var(--text-xs);      /* was: 12.5px */
+  font-weight: 700;               /* was: 600 -- label kecil butuh lebih tebal */
   color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .value {
-  font-size: 30px;
-  font-weight: 500;
+  font-size: var(--text-2xl);     /* was: 30px -> jadi 32px, konsisten dgn skala */
+  font-weight: 650;               /* was: 500 -- angka utama perlu lebih tegas */
   color: var(--color-primary-dark);
 }
 
-.hint { font-size: 12.5px; color: var(--color-muted); }
+.hint {
+  font-size: var(--text-xs);      /* was: 12.5px */
+  color: var(--color-muted);
+}
 </style>

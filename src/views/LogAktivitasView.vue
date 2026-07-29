@@ -85,7 +85,7 @@ function exportCsv() {
       title="Belum ada aktivitas"
       description="Aktivitas login, upload, dan hapus dataset akan tercatat otomatis di sini."
     />
-    <DataTable v-else :columns="kolom" :rows="hasilFilter">
+    <DataTable v-else :columns="kolom" :rows="hasilFilter" paginate :pageSize="10">
       <template #cell-aksi="{ row }">
         <span class="badge" :class="warnaBadge(row.aksi)">{{ row.aksi }}</span>
       </template>

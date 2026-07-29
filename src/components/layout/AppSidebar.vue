@@ -64,9 +64,7 @@ export default { data: () => ({ icons }) }
   display: flex;
   flex-direction: column;
   padding: 22px 16px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  height: 100vh;      /* was: position: sticky; top: 0; height: 100vh; */
   overflow: hidden;
 }
 

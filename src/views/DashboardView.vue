@@ -10,6 +10,7 @@ import StatCard from '../components/layout/StatCard.vue'
 import DataTable from '../components/layout/DataTable.vue'
 import EmptyState from '../components/layout/EmptyState.vue'
 import { formatAngka } from '../utils/format.js'
+import TableSkeleton from '../components/layout/TableSkeleton.vue'
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement)
 
@@ -87,12 +88,13 @@ const datasetTerbaru = computed(() =>
       <StatCard label="Indikator" :value="ds.ringkasan.totalIndikator" hint="Jenis indikator berbeda" />
     </div>
 
-    <div v-if="ds.datasets.length === 0">
-      <EmptyState
-        title="Belum ada dataset"
-        description="Unggah dataset pertama Anda lewat halaman Upload Data untuk mulai melihat visualisasi di sini."
-      />
-    </div>
+    <TableSkeleton v-if="ds.loading && ds.datasets.length === 0" :rows="5" />
+<EmptyState
+  v-else-if="ds.datasets.length === 0"
+  title="Belum ada dataset"
+  description="Unggah dataset pertama Anda lewat halaman Upload Data untuk mulai melihat visualisasi di sini."
+/>
+
 
     <template v-else>
       <div class="chart-grid">

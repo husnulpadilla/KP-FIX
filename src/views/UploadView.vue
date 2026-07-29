@@ -28,6 +28,10 @@ const modeKonversi = ref(null)
 const rawStandarRows = ref([])
 
 // --- mode 'wide' (format lain: BPS lebar-per-tahun, bulanan, gabungan indikator/periode, dst) ---
+// Catatan: mode ini tetap khusus data numerik/deret waktu, karena proses
+// melt/unpivot-nya (menjumlah/menyusun nilai per kolom tahun/bulan) memang
+// cuma masuk akal untuk angka. Dukungan data kategorikal (teks) disediakan
+// lewat mode 'standar' di atas.
 const wideRows = ref([])
 const kolomWilayah = ref('')
 const kolomTahun = ref([]) // [{ field, tahunEksplisit, labelIndikator, subLabel }]
@@ -78,6 +82,25 @@ function parseAngka(v) {
     s = s.replace(/,/g, '')
   }
   return parseFloat(s)
+}
+
+// Cek apakah sebuah nilai mentah dari CSV memang murni angka (boleh pakai
+// koma/titik sebagai desimal, boleh minus) -- bukan cuma "diawali" angka.
+// Ini yang membedakan nilai numerik ("75.21") dari nilai kategorikal ("Baik").
+function apakahNumerik(v) {
+  const s = String(v ?? '').trim()
+  if (s === '') return false
+  return /^-?[\d.,]+$/.test(s) && /\d/.test(s)
+}
+
+// Ubah nilai mentah jadi salah satu dari { nilai, nilai_teks } -- keduanya
+// saling eksklusif. Dipakai supaya skema standar bisa menyimpan indikator
+// numerik (mis. "75.21") maupun kategorikal (mis. "Baik", "Laki-laki") dalam
+// kolom yang tepat, tanpa memaksa semuanya jadi angka.
+function prosesNilai(mentah) {
+  if (nilaiKosong(mentah)) return { nilai: null, nilai_teks: null }
+  if (apakahNumerik(mentah)) return { nilai: parseAngka(mentah), nilai_teks: null }
+  return { nilai: null, nilai_teks: String(mentah).trim() }
 }
 
 // Cari baris header asli di antara baris-baris file (melewati baris judul/metadata di atasnya).
@@ -210,7 +233,9 @@ async function handleFile(e) {
     return obj
   })
 
-  // Kasus 1: CSV sudah memakai skema standar dashboard -> pakai langsung
+  // Kasus 1: CSV sudah memakai skema standar dashboard -> pakai langsung.
+  // Nilai tiap baris otomatis dideteksi: kalau murni angka masuk ke `nilai`,
+  // kalau teks/kategori (mis. "Baik", "Laki-laki") masuk ke `nilai_teks`.
   const fieldsNorm = headerMentah.map((f) => f.toLowerCase())
   const cocokStandar = SKEMA_STANDAR.every((s) => fieldsNorm.includes(s))
 
@@ -218,14 +243,19 @@ async function handleFile(e) {
     const petaField = {}
     SKEMA_STANDAR.forEach((s) => { petaField[s] = headerMentah[fieldsNorm.indexOf(s)] })
     modeKonversi.value = 'standar'
-    rawStandarRows.value = dataObjek.map((o) => ({
-      kategori: String(o[petaField.kategori] ?? '').trim(),
-      wilayah: String(o[petaField.wilayah] ?? '').trim(),
-      tahun: parseInt(o[petaField.tahun], 10),
-      indikator: String(o[petaField.indikator] ?? '').trim(),
-      nilai: parseAngka(o[petaField.nilai]),
-      satuan: String(o[petaField.satuan] ?? '').trim(),
-    }))
+    rawStandarRows.value = dataObjek.map((o) => {
+      const { nilai, nilai_teks } = prosesNilai(o[petaField.nilai])
+      const tahunParsed = parseInt(o[petaField.tahun], 10)
+      return {
+        kategori: String(o[petaField.kategori] ?? '').trim(),
+        wilayah: String(o[petaField.wilayah] ?? '').trim(),
+        tahun: Number.isNaN(tahunParsed) ? null : tahunParsed,
+        indikator: String(o[petaField.indikator] ?? '').trim(),
+        nilai,
+        nilai_teks,
+        satuan: String(o[petaField.satuan] ?? '').trim(),
+      }
+    })
     return
   }
 
@@ -283,6 +313,7 @@ async function handleFile(e) {
 
 // Ubah data non-standar menjadi baris-baris skema standar (melt/unpivot),
 // mengikuti kategori/indikator/satuan/tahun yang diisi admin di panel konversi.
+// Mode ini tetap khusus numerik -- baris dengan nilai bukan angka dilewati.
 const parsedRowsWide = computed(() => {
   if (modeKonversi.value !== 'wide') return []
   const hasil = []
@@ -304,6 +335,7 @@ const parsedRowsWide = computed(() => {
         tahun: tahun ?? '',
         indikator,
         nilai,
+        nilai_teks: null,
         satuan: inputSatuan.value.trim(),
       })
     }
@@ -327,20 +359,29 @@ const infoKolom = computed(() => {
 
 // Setelah berhasil disimpan, arahkan admin langsung ke halaman Analisis
 // dengan filter kategori & indikator sesuai dataset yang baru diupload.
-function prosesUpload() {
+async function prosesUpload() {
   if (parsedRows.value.length === 0) return
   const kategori = parsedRows.value[0].kategori || 'Tanpa Kategori'
   const indikator = parsedRows.value[0].indikator
-  ds.tambahDataset({
-    nama_file: fileName.value,
-    kategori,
-    rows: parsedRows.value,
-    diupload_oleh: auth.username || 'admin',
-  })
-  resetHasilParse()
-  fileName.value = ''
-  if (fileInput.value) fileInput.value.value = ''
-  router.push({ name: 'analisis', query: { kategori, indikator } })
+
+  successMsg.value = ''
+  parseError.value = ''
+
+  try {
+    await ds.tambahDataset({
+      nama_file: fileName.value,
+      kategori,
+      rows: parsedRows.value,
+      diupload_oleh: auth.username || 'admin',
+    })
+    resetHasilParse()
+    fileName.value = ''
+    if (fileInput.value) fileInput.value.value = ''
+    router.push({ name: 'analisis', query: { kategori, indikator } })
+  } catch (e) {
+    parseError.value = 'Gagal menyimpan ke server: ' + (e.message || 'terjadi kesalahan tidak diketahui')
+    console.error('prosesUpload gagal:', e)
+  }
 }
 
 function hapus(id) {
@@ -372,9 +413,10 @@ const datasetTabel = computed(() => ds.datasets.map((d) => ({ ...d, jumlah: d.ro
         <span class="eyebrow">Kelola Data</span>
         <h1>Upload Dataset Baru</h1>
         <p>
-          Mendukung CSV skema standar (<code>kategori, wilayah, tahun, indikator, nilai, satuan</code>),
-          format lebar khas BPS (wilayah + kolom tahun), data bulanan, maupun kolom gabungan indikator/periode —
-          semuanya dikonversi otomatis. Halaman ini khusus admin — upload &amp; hapus dataset memerlukan login.
+          Mendukung CSV skema standar (<code>kategori, wilayah, tahun, indikator, nilai, satuan</code>) —
+          baik nilai numerik maupun teks/kategori dideteksi otomatis — serta format lebar khas BPS
+          (wilayah + kolom tahun), data bulanan, maupun kolom gabungan indikator/periode untuk data numerik.
+          Halaman ini khusus admin — upload &amp; hapus dataset memerlukan login.
         </p>
       </div>
     </div>
@@ -430,13 +472,17 @@ const datasetTabel = computed(() => ds.datasets.map((d) => ({ ...d, jumlah: d.ro
 
         <div v-if="parsedRows.length > 0" class="preview">
           <p class="preview-label">🔎 Pratinjau — {{ parsedRows.length }} baris terbaca dari <strong>{{ fileName }}</strong></p>
-          <DataTable :columns="kolomPreview" :rows="parsedRows.slice(0, 8)" />
+          <DataTable :columns="kolomPreview" :rows="parsedRows.slice(0, 8)">
+            <template #cell-nilai="{ row }">
+              {{ row.nilai !== null && row.nilai !== undefined ? row.nilai : (row.nilai_teks || '-') }}
+            </template>
+          </DataTable>
           <button class="btn btn-primary" @click="prosesUpload">Proses &amp; Tambahkan ke Dashboard</button>
         </div>
       </div>
     </template>
 
-    <h3 class="section-title">Kelola Dataset Tersimpan</h3>
+    <h3 class="card-title">Kelola Dataset Tersimpan</h3>
     <DataTable :columns="kolomKelola" :rows="datasetTabel">
       <template #cell-nama_file="{ row }">
         <button class="link-btn" @click="lihatAnalisis(row)">{{ row.nama_file }}</button>
@@ -508,8 +554,6 @@ const datasetTabel = computed(() => ds.datasets.map((d) => ({ ...d, jumlah: d.ro
 
 .preview { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
 .preview-label { font-size: 13.5px; color: var(--color-ink-soft); }
-
-.section-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
 
 .link-btn {
   background: none;
